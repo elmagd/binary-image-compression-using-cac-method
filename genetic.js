@@ -54,27 +54,27 @@ function Genetic() {
     $this.drawStats = function () {
         if (!startPause) return;
 
-        windowDist = Math.sqrt(Math.pow($this.imageWidth, 2) + Math.pow($this.imageHeight, 2));
+        // windowDist = Math.sqrt(Math.pow($this.imageWidth, 2) + Math.pow($this.imageHeight, 2));
 
         lowerLeftBuffer.background(255);
         lowerLeftBuffer.stroke(255, 0, 0);
-        lowerLeftBuffer.strokeWeight(2);
+        lowerLeftBuffer.strokeWeight(3);
 
         var dist = 0;
         lowerLeftBuffer.beginShape();
 
         for (var i = 0; i < $this.history.length; i++) {
-            dist = Math.sqrt(Math.pow($this.history[i].x, 2) +
-                Math.pow($this.history[i].y, 2));
+            // dist = Math.sqrt(Math.pow($this.history[i].x, 2) +
+            //     Math.pow($this.history[i].y, 2));
 
-            dist = map(dist, 1, windowDist, 20, lowerLeftBuffer.height - 40);
+            dist = map($this.history[i].fit*10, 0, 30, 200, 80);
 
             // console.log(x); 
-            lowerLeftBuffer.vertex(i * 2, dist);
+            lowerLeftBuffer.vertex(i*7, dist);
         }
 
         lowerLeftBuffer.endShape();
-        if ($this.history.length > lowerLeftBuffer.width / 2) {
+        if ($this.history.length >=lowerLeftBuffer.width/7) {
             $this.history.splice(0, 1);
         }
     }
@@ -126,8 +126,13 @@ function Genetic() {
 
             $this.population[i].fitness = cr;
 
-            $this.history.push({ x: $this.population[i].p, y: $this.population[i].q })
+            $this.history.push({
+                x: $this.population[i].p,
+                y: $this.population[i].q,
+                fit: $this.population[i].fitness
+            })
 
+        $this.drawStats();
             // console.log(i, 
             blocksInfo += "W:" + imageMeta.numWhite +
                 "  B:" + imageMeta.numBlack +
@@ -145,8 +150,8 @@ function Genetic() {
 
         // $this.bestTillNow = ''; 
         for (var i = 0; i < $this.population.length; i++) {
-            if ($this.bestTillNow.length > 400) $this.bestTillNow = ''; 
-            if ($this.bestTillNow.length > 1000) $this.bestTillNow = ''; 
+            if ($this.bestTillNow.length > 400) $this.bestTillNow = '';
+            if ($this.doubleBest.length > 400) $this.bestTillNow = '';
 
             if ($this.population[i].fitness > 1 &&
                 $this.population[i].fitness < 2) {
@@ -175,9 +180,9 @@ function Genetic() {
         }
         else {
             bestTillNowBuffer.text($this.bestTillNow, 30, 10);
-            console.log("Best > 1: \n(", $this.bestTillNow,
-                ")\nBest >= 2: (", $this.doubleBest + ")"); 
-            }
+            // console.log("Best > 1: \n(", $this.bestTillNow,
+            //     ")\nBest >= 2: (", $this.doubleBest + ")");
+        }
         bestTillNowBuffer.text($this.doubleBest, 200, 10);
     } // end of calcFitness 
 
@@ -224,7 +229,7 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
         value = random(1);
 
         if (rand <= crsOverProb) {
-            newchilds = performCrossover(pop);
+            newchilds = getCrossoverParents(pop);
 
             if (i === pop.length - 1) {
                 selected = (value > 0.5 ?
@@ -271,7 +276,7 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
     return offSpring;
 }
 
-function performCrossover(pop) {
+function getCrossoverParents(pop) {
     var rand = 0;
     var selected = [];
     var offSpring = { firstChild: {}, secondChild: {} };
@@ -309,7 +314,7 @@ function performCrossover(pop) {
     }
 
     offSpring.firstChild = new Chromosome(pop[selected[0]].p, pop[selected[1]].q);
-    offSpring.secondChild = new Chromosome(pop[selected[0]].q, pop[selected[1]].p);
+    offSpring.secondChild = new Chromosome(pop[selected[1]].p, pop[selected[0]].q);
 
     return offSpring;
 }
@@ -344,17 +349,14 @@ function getNearestDivisor(number, divisorGuid) {
     var y, x;
     x = y = divisorGuid;
 
-    var rand = random(100);
-
-    if (rand > 50) {
-        while (number % x && x <= number)--x;
-        return x;
+    if (number > divisorGuid) {
+        while (number % x) --x;
+        while (number % y) ++y;
+        if (Math.abs(y - divisorGuid) > Math.abs(divisorGuid - x)) return y;
+        else return x; 
     }
-    else {
-        while (number % y && y <= number)++y;
-        return y;
-    }
-    // if(Math.abs(y-divisorGuid) > Math.abs(divisorGuid-x)) return y; 
+    while (number % x)--x;
+    return x; 
 }
 
 // used only if number of pixels per row, or col is prime number 

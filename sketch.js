@@ -28,7 +28,7 @@ function setup() {
 
 	upperLeftBuffer = createGraphics(windWidth, windHeight);
 	lowerRightBuffer = createGraphics(windowWidth - windWidth, windowHeight);
-	lowerLeftBuffer = createGraphics(windWidth, windowHeight - windHeight);
+	lowerLeftBuffer = createGraphics(windWidth, 200);
 	bestTillNowBuffer = createGraphics(windowWidth / 4, windowHeight - windHeight - 50);
 
 
@@ -82,7 +82,7 @@ function draw() {
 	image(lowerRightBuffer, windWidth, 0, windowWidth / 2, windowHeight - 200);
 	image(bestTillNowBuffer, windWidth, windowHeight - 200, windowWidth / 2, 200);
 
-	genetic.drawStats();
+	// genetic.drawStats();
 	image(lowerLeftBuffer, 0, windHeight + 10, windWidth, (windowHeight - windHeight));
 
 	// bestTillNowBuffer = createGraphics(bestTillNowBuffer, windowHeight - windHeight - 50);
