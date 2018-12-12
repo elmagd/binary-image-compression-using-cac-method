@@ -27,8 +27,9 @@ function setup() {
 	frameRate(speed);
 
 	upperLeftBuffer = createGraphics(windWidth, windHeight);
-	lowerLeftBuffer = createGraphics(windWidth / 2, windowHeight - windHeight - 50);
 	lowerRightBuffer = createGraphics(windowWidth - windWidth, windowHeight);
+	lowerLeftBuffer = createGraphics(windWidth, windowHeight - windHeight);
+	bestTillNowBuffer = createGraphics(windowWidth / 4, windowHeight - windHeight - 50);
 
 
 	gui = new dat.GUI();
@@ -41,22 +42,22 @@ function setup() {
 		function () { genetic.setMutation(mutation) }
 	);
 
-	gui.add(this, 'generationSize', 1, 100, 2).name("Generation Size:").onFinishChange(
+	gui.add(this, 'generationSize', 1, 25, 1).name("Generation Size:").onFinishChange(
 		function () {
 			genetic.generatePopulation(generationSize);
-			genetic.calcFitness(); 
+			genetic.calcFitness();
 		}
 	);
 
 	genetic = new Genetic();
-	genetic.setImageRowColSize(20);
+	genetic.setImageRowColSize(10);
 	genetic.createImage();
 
 	gui.add(this, 'blackOverWhite', 0, 1, 0.01).name("BlackOverWhite").onChange(
 		function () {
 			genetic.image.generatePixels();
 			genetic.generatePopulation(generationSize);
-			genetic.calcFitness(); 
+			genetic.calcFitness();
 			startPause = false;
 		}
 	);
@@ -74,15 +75,17 @@ function setup() {
 }
 
 function draw() {
-
 	drawUpperLeftBuffer();
 	image(upperLeftBuffer, 0, 0);
 	upperLeftBuffer.noStroke();
 
-	image(lowerRightBuffer, windWidth, 0, windWidth, windowHeight);
+	image(lowerRightBuffer, windWidth, 0, windowWidth / 2, windowHeight - 200);
+	image(bestTillNowBuffer, windWidth, windowHeight - 200, windowWidth / 2, 200);
 
 	genetic.drawStats();
-	image(lowerLeftBuffer, 0, windHeight, windWidth, windowHeight - windHeight);
+	image(lowerLeftBuffer, 0, windHeight + 10, windWidth, (windowHeight - windHeight));
+
+	// bestTillNowBuffer = createGraphics(bestTillNowBuffer, windowHeight - windHeight - 50);
 }
 
 function drawUpperLeftBuffer() {

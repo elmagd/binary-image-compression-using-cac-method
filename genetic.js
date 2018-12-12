@@ -4,6 +4,9 @@ function Genetic() {
     $this.crossOver = 0.7;
     $this.mutation = 0.01;
 
+    $this.bestTillNow = '';
+    $this.doubleBest = '';
+
     $this.imageWidth = parseInt(26);
     $this.imageHeight = parseInt(26);
 
@@ -33,6 +36,9 @@ function Genetic() {
 
     $this.generatePopulation = function (populationMax) {
         $this.population = [];
+        $this.bestTillNow = '';
+        $this.doubleBest = '';
+
         for (var i = 0; i < populationMax; i++) {
 
             x = randomInt($this.imageWidth);
@@ -52,7 +58,7 @@ function Genetic() {
 
         lowerLeftBuffer.background(255);
         lowerLeftBuffer.stroke(255, 0, 0);
-        lowerLeftBuffer.strokeWeight(1.5);
+        lowerLeftBuffer.strokeWeight(2);
 
         var dist = 0;
         lowerLeftBuffer.beginShape();
@@ -84,12 +90,16 @@ function Genetic() {
         var blocksInfo = '';
         var fitnessInfo = '';
 
+        var imageMetasForPop = [];
+
         for (var i = 0; i < $this.population.length; i++) {
             whiteBits = blackBits = mixedBits = '';
             lengthAfterEncoding = 0;
 
             imageMeta = $this.image.scanImage($this.population[i].p,
                 $this.population[i].q);
+
+            imageMetasForPop.push([imageMeta.numWhite, imageMeta.numBlack, imageMeta.numMixed]);
 
             if ((imageMeta.numMixed >= imageMeta.numBlack) &&
                 (imageMeta.numMixed >= imageMeta.numWhite)) {
@@ -109,7 +119,7 @@ function Genetic() {
                 mixedBits = '10';
             }
 
-            lengthAfterEncoding = $this.getImageLen(whiteBits, blackBits, mixedBits,
+            lengthAfterEncoding = $this.getImageLenInBits(whiteBits, blackBits, mixedBits,
                 imageMeta.numWhite, imageMeta.numBlack, imageMeta.numMixed, i);
 
             cr = ($this.imageWidth * $this.imageHeight) / lengthAfterEncoding;
@@ -129,12 +139,46 @@ function Genetic() {
         } // end of for loop 
 
         lowerRightBuffer.background(255);
-        lowerRightBuffer.textSize(14);
+        lowerRightBuffer.textSize(20);
         lowerRightBuffer.text(fitnessInfo, 20, 20);
+        lowerRightBuffer.text(blocksInfo, 300, 20);
 
-        lowerRightBuffer.textSize(14);
-        lowerRightBuffer.text(blocksInfo, 220, 20);
+        // $this.bestTillNow = ''; 
+        for (var i = 0; i < $this.population.length; i++) {
+            if ($this.bestTillNow.length > 400) $this.bestTillNow = ''; 
+            if ($this.bestTillNow.length > 1000) $this.bestTillNow = ''; 
 
+            if ($this.population[i].fitness > 1 &&
+                $this.population[i].fitness < 2) {
+                $this.bestTillNow += i + " -P: " + $this.population[i].p +
+                    ", Q: " + $this.population[i].q +
+                    ", F: " + round($this.population[i].fitness * 100) / 100 +
+                    ", W: " + imageMetasForPop[i][0] +
+                    ", B: " + imageMetasForPop[i][1] +
+                    ", M: " + imageMetasForPop[i][2] + "\n";
+            }
+            else if ($this.population[i].fitness >= 2) {
+                $this.doubleBest += i + " -P: " + $this.population[i].p +
+                    ", Q: " + $this.population[i].q +
+                    ", F: " + round($this.population[i].fitness * 100) / 100 +
+                    ", W: " + imageMetasForPop[i][0] +
+                    ", B: " + imageMetasForPop[i][1] +
+                    ", M: " + imageMetasForPop[i][2] + "\n";
+            }
+        }
+
+        bestTillNowBuffer.background(255);
+        bestTillNowBuffer.textSize(7);
+
+        if ($this.bestTillNow === '') {
+            bestTillNowBuffer.text("NO THING HERE", 30, 10);
+        }
+        else {
+            bestTillNowBuffer.text($this.bestTillNow, 30, 10);
+            console.log("Best > 1: \n(", $this.bestTillNow,
+                ")\nBest >= 2: (", $this.doubleBest + ")"); 
+            }
+        bestTillNowBuffer.text($this.doubleBest, 200, 10);
     } // end of calcFitness 
 
     $this.nextGeneration = function () {
@@ -143,7 +187,7 @@ function Genetic() {
             $this.imageWidth, $this.imageHeight);
     }
 
-    $this.getImageLen = function (w, b, m, nw, nb, nm, i) {
+    $this.getImageLenInBits = function (w, b, m, nw, nb, nm, i) {
         return ((w.length * nw) +
             (b.length * nb) +
             (m.length * nm) +
@@ -171,7 +215,7 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
 
     calcProbability(pop);
 
-    console.log("CrossOver: " + crsOverProb + " Mutation: " + mutProb); 
+    // console.log("CrossOver: " + crsOverProb + " Mutation: " + mutProb);
 
     // loop until new population is full
     for (var i = 0; i < pop.length; i += 2) {
@@ -180,7 +224,7 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
         value = random(1);
 
         if (rand <= crsOverProb) {
-            newchilds = performCrossOver(pop);
+            newchilds = performCrossover(pop);
 
             if (i === pop.length - 1) {
                 selected = (value > 0.5 ?
@@ -227,28 +271,40 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
     return offSpring;
 }
 
-function performCrossOver(pop) {
+function performCrossover(pop) {
     var rand = 0;
     var selected = [];
     var offSpring = { firstChild: {}, secondChild: {} };
 
     const reapeatTimes = 2;
 
-    
+    // console.log(pop); 
+    // return; 
+
+    var counter = 0;
+
     for (var i = 0; i < reapeatTimes; i++) {
-        rand = random(1);
-        console.log("I: " + i); 
-        
+        rand = round(random(100) * 1000) / 1000;
+
         for (var j = 0; j < (pop.length - 1); j++) {
-            if ((rand >= pop[j].prob) && (rand < pop[j].prob)) {
+            if ((rand > pop[j].prob) && (rand < pop[j + 1].prob)) {
                 break;
             }
         }
-        
-        console.log("j: " + i); 
-        selected.push(j); 
-        if (i == 1) {
-            if (selected[0] == selected[1]) i--;
+
+        // console.log("j: " + j); 
+        selected.push(j);
+        if (i === 1) {
+            if (selected[0] === selected[1]) {
+                selected.splice(1, 1);
+                i--;
+            }
+        }
+
+        counter++;
+        if (counter >= 100) {
+            console.log("Counter acessed the permitted value: " + counter);
+            return;
         }
     }
 
@@ -267,10 +323,14 @@ function calcProbability(pop) {
         sum += pop[i].fitness;
     }
 
+    // console.log(sum); 
+
     for (var i = 0; i < pop.length; i++) {
-        pop[i].prob = prob + (pop[i].fitness / sum);
-        prob += pop[i].prob;
+        prob += (pop[i].fitness / sum);
+        pop[i].prob = round(prob * 100000) / 1000;
+        // console.log(prob); 
     }
+    // console.log(pop);
 }
 
 function randomInt(value) {
@@ -286,7 +346,7 @@ function getNearestDivisor(number, divisorGuid) {
 
     var rand = random(100);
 
-    if (rand >= 50) {
+    if (rand > 50) {
         while (number % x && x <= number)--x;
         return x;
     }
