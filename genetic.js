@@ -1,8 +1,8 @@
 function Genetic() {
     $this = new Object();
 
-    $this.crossOver = 0.7;
-    $this.mutation = 0.01;
+    $this.crossOver = 0.8;
+    $this.mutation = 0.003;
 
     $this.bestTillNow = '';
     $this.doubleBest = '';
@@ -11,6 +11,18 @@ function Genetic() {
     $this.imageHeight = parseInt(26);
 
     $this.history = [];
+    $this.generationSize = 0; 
+
+    $this.getPop = function () {
+    	var popstr = '';  
+    	for(var i=0; i<$this.generationSize; i++) { 
+            popstr += i + " -P: " + $this.population[i].p + "  \tQ: " +
+            $this.population[i].q + "  \tFit: " +
+            round($this.population[i].fitness * 1000) / 1000 + "\t" + "\n";
+
+    	}
+    	return popstr; 
+    }
 
     $this.setImageRowColSize = function (value) {
         $this.imageWidth = $this.imageHeight = parseInt(value);
@@ -35,6 +47,7 @@ function Genetic() {
     }
 
     $this.generatePopulation = function (populationMax) {
+        $this.generationSize = populationMax; 
         $this.population = [];
         $this.bestTillNow = '';
         $this.doubleBest = '';
@@ -51,32 +64,46 @@ function Genetic() {
         }
     }
 
+
     $this.drawStats = function () {
         if (!startPause) return;
 
         // windowDist = Math.sqrt(Math.pow($this.imageWidth, 2) + Math.pow($this.imageHeight, 2));
 
-        lowerLeftBuffer.background(255);
-        lowerLeftBuffer.stroke(255, 0, 0);
-        lowerLeftBuffer.strokeWeight(3);
-
         var dist = 0;
+
+        lowerLeftBuffer.background(255);
+        lowerLeftBuffer.stroke(0);
+        lowerLeftBuffer.line(0, lowerLeftBuffer.height, 
+        	lowerLeftBuffer.width, lowerLeftBuffer.height);
+        
         lowerLeftBuffer.beginShape();
+        lowerLeftBuffer.stroke(255, 0, 0);
+        lowerLeftBuffer.strokeWeight(1.7);
 
         for (var i = 0; i < $this.history.length; i++) {
             // dist = Math.sqrt(Math.pow($this.history[i].x, 2) +
             //     Math.pow($this.history[i].y, 2));
-
-            dist = map($this.history[i].fit*10, 0, 30, 200, 80);
-
+            if($this.history[i].fit <= 30)
+                dist = map($this.history[i].fit, 0, 30, lowerLeftBuffer.height, 5);
+            else { 
+                dist = map($this.history[i].fit, 4500, 4900, lowerLeftBuffer.height, 30);
+            }
             // console.log(x); 
-            lowerLeftBuffer.vertex(i*7, dist);
+            var x = i* random(19, 20); 
+            lowerLeftBuffer.vertex(x, dist);
+            if(i == $this.generationSize) {
+                lowerLeftBuffer.textSize(20); 
+                lowerLeftBuffer.text(String(round($this.history[i].fit * 100) / 100), x - 5, dist); 
+            }
+    
+            $this.history.splice(0, 1);
         }
 
         lowerLeftBuffer.endShape();
-        if ($this.history.length >=lowerLeftBuffer.width/7) {
-            $this.history.splice(0, 1);
-        }
+        // if ($this.history.length >=lowerLeftBuffer.width/3) {
+        //     $this.history.splice(0, );
+        // }
     }
 
     $this.calcFitness = function () {
@@ -102,21 +129,60 @@ function Genetic() {
             imageMetasForPop.push([imageMeta.numWhite, imageMeta.numBlack, imageMeta.numMixed]);
 
             if ((imageMeta.numMixed >= imageMeta.numBlack) &&
-                (imageMeta.numMixed >= imageMeta.numWhite)) {
-                mixedBits = '0';
-                whiteBits = '10';
-                blackBits = '11';
+                (imageMeta.numMixed >= imageMeta.numWhite)) {            	
+            	if(imageMeta.blackBits == 0) { 
+	                mixedBits = '0';
+	                whiteBits = '1';
+            		blackBits = '';         		
+            	}
+            	else if(imageMeta.whiteBits == 0) { 
+	                mixedBits = '0';
+            		blackBits = '1';         		
+	                whiteBits = '';	
+            	}
+                else { 
+                	mixedBits = '0';
+                	whiteBits = '10';
+                	blackBits = '11';
+                }
             }
             else if ((imageMeta.numWhite >= imageMeta.numBlack) &&
                 (imageMeta.numWhite > imageMeta.numMixed)) {
-                whiteBits = '0';
-                blackBits = '11';
-                mixedBits = '10';
+
+            	if(imageMeta.numBlack == 0) { 
+	                whiteBits = '1';
+	                mixedBits = '0';
+            		blackBits = '';         		
+            	}
+            	else if(imageMeta.numMixed == 0) { 
+	                whiteBits = '1';	
+	                mixedBits = '';
+            		blackBits = '1';         		
+            	}
+                else { 
+                	whiteBits = '0';
+                	mixedBits = '10';
+                	blackBits = '11';
+                }
+
             }
             else {
-                blackBits = '0';
+            	if(imageMeta.numWhite == 0) { 
+	                mixedBits = '0';
+	                whiteBits = '';
+            		blackBits = '1';         		
+            	}
+            	else if(imageMeta.numMixed == 0) { 
+	                mixedBits = '';
+            		blackBits = '1';         		
+	                whiteBits = '0';	
+            	}
+            	else { 
+				blackBits = '0';
                 whiteBits = '11';
                 mixedBits = '10';
+            	}
+                
             }
 
             lengthAfterEncoding = $this.getImageLenInBits(whiteBits, blackBits, mixedBits,
@@ -126,70 +192,77 @@ function Genetic() {
 
             $this.population[i].fitness = cr;
 
+
             $this.history.push({
                 x: $this.population[i].p,
                 y: $this.population[i].q,
                 fit: $this.population[i].fitness
             })
+            // // console.log(i, 
+            // blocksInfo += "W:" + imageMeta.numWhite +
+            //     "  B:" + imageMeta.numBlack +
+            //     "  M:" + imageMeta.numMixed + "\n";
 
-        $this.drawStats();
-            // console.log(i, 
-            blocksInfo += "W:" + imageMeta.numWhite +
-                "  B:" + imageMeta.numBlack +
-                "  M:" + imageMeta.numMixed + "\n";
+            // fitnessInfo += i + " -P:" + $this.population[i].p + "  \tQ:" +
+            //     $this.population[i].q + "  \tFit:" +
+            //     round($this.population[i].fitness * 1000) / 1000 + "\t" + "\n";
 
-            fitnessInfo += i + " -P:" + $this.population[i].p + "  \tQ:" +
-                $this.population[i].q + "  \tFit:" +
-                round($this.population[i].fitness * 1000) / 1000 + "\t" + "\n";
         } // end of for loop 
 
-        lowerRightBuffer.background(255);
-        lowerRightBuffer.textSize(20);
-        lowerRightBuffer.text(fitnessInfo, 20, 20);
-        lowerRightBuffer.text(blocksInfo, 300, 20);
+        // lowerRightBuffer.background(255);
+        // lowerRightBuffer.textSize(20);
+        // lowerRightBuffer.text(fitnessInfo, 20, 20);
+        // lowerRightBuffer.text(blocksInfo, 300, 20);
 
-        // $this.bestTillNow = ''; 
-        for (var i = 0; i < $this.population.length; i++) {
-            if ($this.bestTillNow.length > 400) $this.bestTillNow = '';
-            if ($this.doubleBest.length > 400) $this.bestTillNow = '';
+        // // $this.bestTillNow = ''; 
+        // for (var i = 0; i < $this.population.length; i++) {
+        //     if ($this.bestTillNow.length > 400) $this.bestTillNow = '';
+        //     if ($this.doubleBest.length > 400) $this.bestTillNow = '';
 
-            if ($this.population[i].fitness > 1 &&
-                $this.population[i].fitness < 2) {
-                $this.bestTillNow += i + " -P: " + $this.population[i].p +
-                    ", Q: " + $this.population[i].q +
-                    ", F: " + round($this.population[i].fitness * 100) / 100 +
-                    ", W: " + imageMetasForPop[i][0] +
-                    ", B: " + imageMetasForPop[i][1] +
-                    ", M: " + imageMetasForPop[i][2] + "\n";
-            }
-            else if ($this.population[i].fitness >= 2) {
-                $this.doubleBest += i + " -P: " + $this.population[i].p +
-                    ", Q: " + $this.population[i].q +
-                    ", F: " + round($this.population[i].fitness * 100) / 100 +
-                    ", W: " + imageMetasForPop[i][0] +
-                    ", B: " + imageMetasForPop[i][1] +
-                    ", M: " + imageMetasForPop[i][2] + "\n";
-            }
-        }
+        //     if ($this.population[i].fitness > 1 &&
+        //         $this.population[i].fitness < 2) {
+        //         $this.bestTillNow += i + " -P: " + $this.population[i].p +
+        //             ", Q: " + $this.population[i].q +
+        //             ", F: " + round($this.population[i].fitness * 100) / 100 +
+        //             ", W: " + imageMetasForPop[i][0] +
+        //             ", B: " + imageMetasForPop[i][1] +
+        //             ", M: " + imageMetasForPop[i][2] + "\n";
+        //     }
+        //     else if ($this.population[i].fitness >= 2) {
+        //         $this.doubleBest += i + " -P: " + $this.population[i].p +
+        //             ", Q: " + $this.population[i].q +
+        //             ", F: " + round($this.population[i].fitness * 100) / 100 +
+        //             ", W: " + imageMetasForPop[i][0] +
+        //             ", B: " + imageMetasForPop[i][1] +
+        //             ", M: " + imageMetasForPop[i][2] + "\n";
+        //     }
+        // }
 
-        bestTillNowBuffer.background(255);
-        bestTillNowBuffer.textSize(7);
+        // bestTillNowBuffer.background(255);
+        // bestTillNowBuffer.textSize(7);
 
-        if ($this.bestTillNow === '') {
-            bestTillNowBuffer.text("NO THING HERE", 30, 10);
-        }
-        else {
-            bestTillNowBuffer.text($this.bestTillNow, 30, 10);
-            // console.log("Best > 1: \n(", $this.bestTillNow,
-            //     ")\nBest >= 2: (", $this.doubleBest + ")");
-        }
-        bestTillNowBuffer.text($this.doubleBest, 200, 10);
+        // if ($this.bestTillNow === '') {
+        //     bestTillNowBuffer.text("NO THING HERE", 30, 10);
+        // }
+        // else {
+        //     bestTillNowBuffer.text($this.bestTillNow, 30, 10);
+        //     // console.log("Best > 1: \n(", $this.bestTillNow,
+        //     //     ")\nBest >= 2: (", $this.doubleBest + ")");
+        // }
+        // bestTillNowBuffer.text($this.doubleBest, 200, 10);
+
     } // end of calcFitness 
 
     $this.nextGeneration = function () {
-        $this.population = naturalSelection($this.population,
+        var tempPopulation = naturalSelection($this.population,
             $this.crossOver, $this.mutation,
             $this.imageWidth, $this.imageHeight);
+
+        $this.population = tempPopulation; 
+        $this.calcFitness(); 
+        $this.drawStats(); 
+        $this.population.sort(fitness_comp); 
+        $this.population.splice($this.generationSize, $this.population.length-1); 
     }
 
     $this.getImageLenInBits = function (w, b, m, nw, nb, nm, i) {
@@ -221,18 +294,25 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
     calcProbability(pop);
 
     // console.log("CrossOver: " + crsOverProb + " Mutation: " + mutProb);
+    var tempPopulation = pop;  
 
     // loop until new population is full
     for (var i = 0; i < pop.length; i += 2) {
         //if the random number is the same as crossover prob or less than it perform crossover. 
-        rand = random(1);
-        value = random(1);
+        rand = math.random();
+        value = math.random();
 
         if (rand <= crsOverProb) {
             newchilds = getCrossoverParents(pop);
 
+            if(newchilds == null) continue;
+
+            if(newchilds.firstChild == null || 
+               newchilds.secondChild == null) continue;
+
+
             if (i === pop.length - 1) {
-                selected = (value > 0.5 ?
+                selected = (value < 0.5 ?
                     newchilds.firstChild :
                     newchilds.secondChild);
 
@@ -254,7 +334,7 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
             }
         }
         //if random is the same as mutation probability or less perform mutation. 
-        rand = random(1);
+        rand = math.random();
         if (rand <= mutProb) {
             x = randomInt(w);
             y = randomInt(h);
@@ -262,19 +342,42 @@ function naturalSelection(pop, crsOverProb, mutProb, w, h) {
             var p = getNearestDivisor(w, x);
             var q = getNearestDivisor(h, y);
 
-            value = random(1);
+            value = math.random();
 
             if (i == pop.length - 1) {
                 offSpring[i].p = (value > 0.5 ? p : q);
+                offSpring[i].q = (value < 0.5 ? p : q);
             }
             else {
+            	if(offSpring[i] == undefined) continue; 
+
                 offSpring[i].p = (value > 0.5 ? p : q);
+                offSpring[i].q = (value < 0.5 ? p : q);
+
+                x = randomInt(w);
+	            y = randomInt(h);
+
+	            p = getNearestDivisor(w, x);
+	            q = getNearestDivisor(h, y);
+
+                offSpring[i + 1].q = (value > 0.5 ? p : q);
                 offSpring[i + 1].q = (value < 0.5 ? p : q);
             }
         }
     }
-    return offSpring;
+
+    if(offSpring.length > 0) 
+	    for(let i=0; i<offSpring.length; i++) { 
+	    	tempPopulation.push(offSpring[i]); 
+	    }
+    return tempPopulation;
 }
+
+function fitness_comp(a, b) { 
+	if(b.fitness > a.fitness) return 1; 
+	return -1; 
+}
+
 
 function getCrossoverParents(pop) {
     var rand = 0;
@@ -289,7 +392,7 @@ function getCrossoverParents(pop) {
     var counter = 0;
 
     for (var i = 0; i < reapeatTimes; i++) {
-        rand = round(random(100) * 1000) / 1000;
+        rand = round(math.random(100) * 1000) / 1000;
 
         for (var j = 0; j < (pop.length - 1); j++) {
             if ((rand > pop[j].prob) && (rand < pop[j + 1].prob)) {
@@ -306,15 +409,18 @@ function getCrossoverParents(pop) {
             }
         }
 
-        counter++;
-        if (counter >= 100) {
+        if (counter >= 1000) {
             console.log("Counter acessed the permitted value: " + counter);
-            return;
+            noOfIterations = 100; 
+            return null; 
         }
+        counter++;
+
     }
 
-    offSpring.firstChild = new Chromosome(pop[selected[0]].p, pop[selected[1]].q);
-    offSpring.secondChild = new Chromosome(pop[selected[1]].p, pop[selected[0]].q);
+
+    offSpring.firstChild = new Chromosome(pop[selected[0]].p, pop[selected[1]].p);
+    offSpring.secondChild = new Chromosome(pop[selected[1]].q, pop[selected[0]].q);
 
     return offSpring;
 }
@@ -339,7 +445,7 @@ function calcProbability(pop) {
 }
 
 function randomInt(value) {
-    var x = round(random(value));
+    var x = round(math.random(value+1));
     return (x > 0 ? x : 1);
 }
 

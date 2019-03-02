@@ -3,19 +3,22 @@ var windHeight;
 
 var counter = 0;
 
-var crossover = 0.7;
-var mutation = 0.01;
+var crossover = 0.8;
+var mutation = 0.003;
 
 var generationSize = 10;
 
 var blackOverWhite = 0.5;
 
-var speed = 7;
+var speed = 60; 
 
 var stop = false;
 var startPause = false;
 
 var gui;
+
+const stopInteration = 100; 
+var noOfiterations = 0; 
 
 function setup() {
 
@@ -28,17 +31,17 @@ function setup() {
 
 	upperLeftBuffer = createGraphics(windWidth, windHeight);
 	lowerRightBuffer = createGraphics(windowWidth - windWidth, windowHeight);
-	lowerLeftBuffer = createGraphics(windWidth, 200);
+	lowerLeftBuffer = createGraphics(windWidth, windowHeight-30);
 	bestTillNowBuffer = createGraphics(windowWidth / 4, windowHeight - windHeight - 50);
 
 
 	gui = new dat.GUI();
 
-	gui.add(this, 'crossover', 0, 1, 0.01).name("Crossover Prob").onFinishChange(
+	gui.add(this, 'crossover', 0, 1, 0.01).name("Crossover Prob").onChange(
 		function () { genetic.setCrossOver(crossover) }
 	);
 
-	gui.add(this, 'mutation', 0, 0.3, 0.3 / 10).name("Mutation Prob").onFinishChange(
+	gui.add(this, 'mutation', 0, 0.1 , 0.001 / 10).name("Mutation Prob").onChange(
 		function () { genetic.setMutation(mutation) }
 	);
 
@@ -50,20 +53,20 @@ function setup() {
 	);
 
 	genetic = new Genetic();
-	genetic.setImageRowColSize(10);
+	genetic.setImageRowColSize(70);
 	genetic.createImage();
 
 	gui.add(this, 'blackOverWhite', 0, 1, 0.01).name("BlackOverWhite").onChange(
 		function () {
 			genetic.image.generatePixels();
 			genetic.generatePopulation(generationSize);
-			genetic.calcFitness();
 			startPause = false;
+			genetic.calcFitness();
 		}
 	);
 
 	gui.add(this, 'start').name("Start/Pause");
-	gui.add(this, 'stopLoop').name("Stop");
+	// gui.add(this, 'stopLoop').name("Stop");
 
 	genetic.image.generatePixels();
 	genetic.setCrossOver(crossover);
@@ -75,6 +78,14 @@ function setup() {
 }
 
 function draw() {
+
+	if(noOfiterations >= stopInteration) { 
+		alert("Iterations Exceeded The Allowed Number (100)\n" + genetic.getPop());
+		noLoop();
+	}  
+
+	if (startPause) noOfiterations++; 
+
 	drawUpperLeftBuffer();
 	image(upperLeftBuffer, 0, 0);
 	upperLeftBuffer.noStroke();
@@ -83,7 +94,7 @@ function draw() {
 	image(bestTillNowBuffer, windWidth, windowHeight - 200, windowWidth / 2, 200);
 
 	// genetic.drawStats();
-	image(lowerLeftBuffer, 0, windHeight + 10, windWidth, (windowHeight - windHeight));
+	image(lowerLeftBuffer, windWidth, 0, windWidth, windowHeight -30);
 
 	// bestTillNowBuffer = createGraphics(bestTillNowBuffer, windowHeight - windHeight - 50);
 }
@@ -102,10 +113,10 @@ function drawUpperLeftBuffer() {
 	}
 
 	if (startPause) {
+
 		// console.log("drawing and solving"); 
 		genetic.image.drawImage(windWidth, windHeight);
 		genetic.nextGeneration();
-		genetic.calcFitness();
 	}
 	else {
 		// console.log("stop solving");
@@ -117,8 +128,10 @@ function drawUpperLeftBuffer() {
 function start() {
 	startPause = !startPause;
 	redraw();
-	if (startPause) speed = 7;
-	else speed = 7;
+	if (startPause) { 
+		speed = 60;
+	}
+	else speed = 60;
 	console.log("start");
 }
 
@@ -137,5 +150,5 @@ function stopLoop() {
 function randomBinary() {
 	// return ((random(1) * random(40) >= 1)? 1 : 0);
 	var x = random(1);
-	return round(x > blackOverWhite ? 1 : 0);
+	return round(x > blackOverWhite * 0.1 ? 1 : 0);
 }
